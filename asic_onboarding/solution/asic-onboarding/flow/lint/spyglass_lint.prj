@@ -1,0 +1,45 @@
+# flow/lint/spyglass_lint.prj -- generic SpyGlass lint run (sg_shell -tcl), used by
+# flow/mk/lint.mk with LINT_TOOL=spyglass. Block-independent: everything comes from the
+# environment set by lint.mk:
+#   LINT_FLAT    flat file list (+incdir+, +define+, absolute files; flist_expand.sh --flat)
+#   LINT_TOP     top module
+#   LINT_PARAMS  space-separated NAME=VALUE overrides of LINT_TOP (may be empty)
+#   LINT_DEFINES space-separated NAME[=VALUE] macros (may be empty)
+#   LINT_GOAL    SpyGlass goal (default lint/lint_rtl)
+#   LINT_WAIVER  optional SpyGlass waiver file (.awl), e.g. hw/ip/<ip>/lint/<ip>.awl
+# sg_shell runs in build/<ip>/<cfg>/lint/spyglass, so the project directory
+# (spyglass-1/, reports) is created there.
+
+set top  $::env(LINT_TOP)
+set goal [expr {[info exists ::env(LINT_GOAL)] && $::env(LINT_GOAL) ne "" ? $::env(LINT_GOAL) : "lint/lint_rtl"}]
+
+set fh [open $::env(LINT_FLAT) r]
+foreach line [split [read $fh] "\n"] {
+  set line [string trim $line]
+  if {$line eq ""} { continue }
+  if {[string match "+incdir+*" $line]} {
+    set_option incdir [string range $line 8 end]
+  } elseif {[string match "+define+*" $line]} {
+    set_option define [string range $line 8 end]
+  } else {
+    read_file -type verilog $line
+  }
+}
+close $fh
+
+foreach d [split [string trim $::env(LINT_DEFINES)]] {
+  if {$d ne ""} { set_option define $d }
+}
+foreach p [split [string trim $::env(LINT_PARAMS)]] {
+  if {$p ne ""} { set_option param "$top.$p" }
+}
+if {[info exists ::env(LINT_WAIVER)] && $::env(LINT_WAIVER) ne ""} {
+  read_file -type awl $::env(LINT_WAIVER)
+}
+
+set_option enableSV09 yes
+set_option top $top
+current_goal $goal -top $top
+run_goal
+# sg_shell does not exit at the end of a script by itself.
+exit -force

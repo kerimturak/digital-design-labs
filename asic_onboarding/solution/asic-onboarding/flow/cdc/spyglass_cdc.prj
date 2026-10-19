@@ -1,0 +1,46 @@
+# flow/cdc/spyglass_cdc.prj -- generic SpyGlass CDC run (sg_shell -tcl), used by
+# flow/mk/cdc.mk ('make cdc'). Block-independent; inputs from the environment:
+#   CDC_FLAT     flat file list (+incdir+, +define+, absolute files; flist_expand.sh --flat)
+#   CDC_TOP      top module
+#   CDC_PARAMS   space-separated NAME=VALUE overrides of CDC_TOP (may be empty)
+#   CDC_SGDC     SpyGlass design constraints: clocks, domains, resets, port domains
+#   CDC_GOALS    space-separated goals, run in order (default cdc/cdc_setup_check
+#                cdc/cdc_verify_struct)
+#   CDC_WAIVER   optional waiver file (.awl), one justification per waiver
+# sg_shell runs in build/<ip>/<cfg>/cdc/spyglass, so spyglass-1/ and the reports land there.
+
+set top   $::env(CDC_TOP)
+set goals [expr {[info exists ::env(CDC_GOALS)] && $::env(CDC_GOALS) ne "" ? $::env(CDC_GOALS) : "cdc/cdc_setup_check cdc/cdc_verify_struct"}]
+
+set fh [open $::env(CDC_FLAT) r]
+foreach line [split [read $fh] "\n"] {
+  set line [string trim $line]
+  if {$line eq ""} { continue }
+  if {[string match "+incdir+*" $line]} {
+    set_option incdir [string range $line 8 end]
+  } elseif {[string match "+define+*" $line]} {
+    set_option define [string range $line 8 end]
+  } else {
+    read_file -type verilog $line
+  }
+}
+close $fh
+read_file -type sgdc $::env(CDC_SGDC)
+if {[info exists ::env(CDC_WAIVER)] && $::env(CDC_WAIVER) ne ""} {
+  read_file -type awl $::env(CDC_WAIVER)
+}
+foreach p [split [string trim $::env(CDC_PARAMS)]] {
+  if {$p ne ""} { set_option param "$top.$p" }
+}
+set_option enableSV09 yes
+set_option top $top
+set_option define SYNTHESIS
+
+foreach g $goals {
+  current_goal $g -top $top
+  # Recognize FIFOs declared with the SGDC 'fifo' constraint (memory + pointers); the
+  # parameter only exists for the verification goals.
+  if {[string match "*verify*" $g]} { set_parameter enable_fifo yes }
+  run_goal
+}
+exit -force

@@ -1,0 +1,4 @@
+# hw/ip/counter/syn/configs.txt -- PARAMS sets for make sweep (flow check)
+WIDTH=4
+WIDTH=8
+WIDTH=16

@@ -1,0 +1,41 @@
+# Generated output -- never committed (make clean deletes build/)
+build/
+obj_dir/
+*.log
+# Waveforms
+*.vcd
+*.fst
+*.fsdb
+*.vpd
+# VCS / Verdi / UCLI junk (if a tool is ever run outside build/)
+simv
+simv.daidir/
+simv.vdb/
+csrc/
+ucli.key
+vc_hdrs.h
+DVEfiles/
+verdiLog/
+novas*
+*.key
+urgReport/
+# VC Static / SpyGlass outputs
+vcst_rtdb/
+vcst_*/
+spyglass-*/
+sg_shell*.log
+# Synthesis / STA tool junk
+*.svf
+alib-*/
+WORK/
+# Technology libraries are provided, not committed
+lib/*.lib
+lib/*.db
+# Python
+__pycache__/
+*.pyc
+# Editors
+*.swp
+*~
+.DS_Store
+.vcstPref
